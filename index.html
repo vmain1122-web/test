@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>MAID_CORE // HOOKAH_HAZE_METER v4</title>
+    <title>MAID_CORE // CYCLE_METER v5</title>
     <style>
         :root {
             --bg-color: #050202;
@@ -36,24 +36,34 @@
         .btn-serve { padding: 12px; font-weight: bold; cursor: pointer; background: #3a0000; border: 1px solid var(--accent-color); color: #fff; }
         .btn-serve:disabled { background: #111; border-color: #222; color: #444; cursor: not-allowed; }
 
-        /* フーカーヘイズ風：病みメーターのスタイリング */
-        .meter-container {
-            background: #000; border: 1px solid #333; padding: 12px;
-            font-family: monospace; font-size: 11px; display: flex; flex-direction: column; gap: 8px;
-        }
+        .meter-container { background: #000; border: 1px solid #333; padding: 12px; font-family: monospace; font-size: 11px; display: flex; flex-direction: column; gap: 8px; }
         .meter-row { display: flex; flex-direction: column; gap: 3px; }
         .meter-label { display: flex; justify-content: space-between; color: #aaa; }
         .meter-bg { background: #201010; height: 8px; border: 1px solid #444; position: relative; }
         .meter-fill { height: 100%; width: 50%; background: var(--accent-color); transition: width 0.8s ease-in-out; }
         .danger { background: #ff0055 !important; box-shadow: 0 0 8px #ff0055; }
         .stable { background: var(--terminal-cyan) !important; }
+
+        /* コーヒートーク風：本日の精算ポップアップ */
+        .result-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center; z-index: 100;
+        }
+        .result-card {
+            background: #0d0606; border: 2px solid var(--terminal-green); padding: 30px;
+            width: 350px; font-family: monospace; box-shadow: 0 0 15px var(--terminal-green);
+        }
+        .result-title { color: var(--terminal-green); font-size: 18px; margin-bottom: 20px; text-align: center; border-bottom: 1px dashed var(--terminal-green); padding-bottom: 10px;}
+        .result-row { display: flex; justify-content: space-between; margin: 12px 0; font-size: 14px;}
+        .btn-next-day { width: 100%; padding: 10px; background: #003300; border: 1px solid var(--terminal-green); color: var(--terminal-green); cursor: pointer; font-weight: bold; margin-top: 15px;}
+        .btn-next-day:hover { background: var(--terminal-green); color: #000; }
     </style>
 </head>
 <body>
 
     <header>
         <div id="sys-day">DAY: 01 // COGNITIVE_METER_LOADED</div>
-        <div>PSYCHE_MONITOR: ONLINE</div>
+        <div style="color: var(--terminal-cyan);" id="sys-wallet">WALLET: ¥0</div>
     </header>
 
     <div class="game-container">
@@ -108,16 +118,26 @@
         </div>
     </div>
 
+    <div class="result-overlay" id="result-screen">
+        <div class="result-card">
+            <div class="result-title">🛒 END OF DAY REPORT</div>
+            <div class="result-row"><span>本日の営業結果:</span><span id="r-status" style="color:var(--terminal-green);">SUCCESS</span></div>
+            <div class="result-row"><span>本日獲得した売上:</span><span id="r-earned" style="color:var(--terminal-cyan);">¥2,000</span></div>
+            <div class="result-row"><span>財布のトータル:</span><span id="r-total">¥2,000</span></div>
+            <button class="btn-next-day" onclick="closeResult()">[ 次の日へ移動する ]</button>
+        </div>
+    </div>
+
    <script>
         const API_BASE = "http://localhost:8080/api/game";
         let recipe = [];
         let isWaitingDrink = false;
+        let currentDay = 1;
 
         async function bootSequence() {
             try {
                 const response = await fetch(`${API_BASE}/state`);
                 const data = await response.json();
-                console.log("【Boot連動受信】", data);
                 syncWithJava(data);
             } catch (error) {
                 document.getElementById('dialogue-text').innerText = "⚠️ SYSTEM ERROR: 有線接続に失敗。";
@@ -127,12 +147,14 @@
 
         function syncWithJava(data) {
             const frame = data.frame;
+            currentDay = frame.day;
             
             document.getElementById('dialogue-text').innerText = frame.text;
             document.getElementById('cast-id').innerText = frame.castId;
             document.getElementById('cast-name').innerText = frame.name;
             document.getElementById('cast-status').innerText = `STATUS: ${frame.status}`;
             document.getElementById('sys-day').innerText = `DAY: 0${frame.day} // INTERCEPT_LOG`;
+            document.getElementById('sys-wallet').innerText = `WALLET: ¥${data.wallet.toLocaleString()}`;
             
             document.documentElement.style.setProperty('--accent-color', frame.uiColor);
 
@@ -140,31 +162,20 @@
             updateMeterDOM('noise', data.waveNoise);
             updateMeterDOM('sync', data.syncRate);
 
-            // ★修正：Java側の "wait_drink" と "WAITING" の両方の電波をキャッチできるようにガードを拡張
             isWaitingDrink = (frame.type === "wait_drink" || frame.status === "WAITING");
-            
-            console.log(`【状態同期】現在ドリンク待ちか？: ${isWaitingDrink}, 現在のカップ中身数: ${recipe.length}`);
             updateMixUI();
         }
 
         async function advanceText() {
-            // ★デバッグログ：クリックされたときの状況を開発者ツールに表示
-            console.log(`【クリック検知】ドリンク待ちフラグ: ${isWaitingDrink}`);
-            if (isWaitingDrink) {
-                console.log("-> 現在ドリンク待ち状態のため、テキスト進行をロックしています。");
-                return; 
-            }
-            
+            if (isWaitingDrink) return; 
             try {
                 const response = await fetch(`${API_BASE}/advance`, { method: 'POST' });
                 const data = await response.json();
-                console.log("【Advance連動受信】", data);
                 syncWithJava(data);
             } catch(e) { console.error(e); }
         }
 
         async function submitDrink() {
-            console.log("【投薬実行】Javaへ送信するパケット:", recipe);
             try {
                 const response = await fetch(`${API_BASE}/serve`, {
                     method: 'POST',
@@ -172,10 +183,27 @@
                     body: JSON.stringify(recipe)
                 });
                 const data = await response.json();
-                console.log("【Serve結果受信】", data);
                 recipe = []; 
                 syncWithJava(data);
+
+                // 🔔 お給仕直後にリザルト画面をポップアップ
+                showResultScreen(data);
             } catch(e) { console.error(e); }
+        }
+
+        function showResultScreen(data) {
+            const isSuccess = data.earnedToday > 0;
+            document.getElementById('r-status').innerText = isSuccess ? "大成功 (AMU同調)" : "失敗 (ただの泥水)";
+            document.getElementById('r-status').style.color = isSuccess ? "var(--terminal-green)" : "#ff0055";
+            document.getElementById('r-earned').innerText = `¥${data.earnedToday.toLocaleString()}`;
+            document.getElementById('r-total').innerText = `¥${data.wallet.toLocaleString()}`;
+            document.getElementById('result-screen').style.display = "flex";
+        }
+
+        function closeResult() {
+            document.getElementById('result-screen').style.display = "none";
+            // 精算を閉じたら次の会話に進めるように、自動で1タップ進める
+            advanceText();
         }
 
         function addIng(name) {
@@ -195,12 +223,8 @@
                 if (recipe[i]) { s.innerText = recipe[i]; s.classList.add('filled'); }
                 else { s.innerText = i===0?"ベース":i===1?"メイン":"トッピング"; s.classList.remove('filled'); }
             }
-            
-            // ★お給仕ボタンの判定条件を最新状態に同期
             const isFull = (recipe.length === 3);
             document.getElementById('serve-btn').disabled = (!isWaitingDrink || !isFull);
-            
-            console.log(`【UI更新】ボタン活性化チェック -> ドリンク待ちか: ${isWaitingDrink}, 3つ入ってるか: ${isFull} -> ボタン無効化(disabled): ${!isWaitingDrink || !isFull}`);
         }
 
         function updateMeterDOM(key, val) {
