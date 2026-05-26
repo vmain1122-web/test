@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>MAID_CORE // BACKYARD_PORTAL_METER v6</title>
+    <title>MAID_CORE // BACKYARD_PORTAL_METER v7</title>
     <style>
         :root {
             --bg-color: #0d0a10;
@@ -22,22 +22,14 @@
             padding: 20px; display: flex; flex-direction: column; height: 95vh; overflow: hidden;
         }
 
-        /* ⚡ 画面シェイク（グリッチ）アニメーション効果 */
+        /* ⚡ 画面シェイク */
         @keyframes glitch-shake {
             0% { transform: translate(0, 0) skewX(0deg); }
-            10% { transform: translate(-3px, 2px) skewX(-2deg); }
             20% { transform: translate(3px, -1px) skewX(3deg); }
-            30% { transform: translate(-1px, -2px) skewX(0deg); }
             40% { transform: translate(2px, 3px) skewX(1deg); }
-            50% { transform: translate(-3px, 1px) skewX(-1deg); }
             60% { transform: translate(0, 0) skewX(0deg); }
-            100% { transform: translate(0, 0) skewX(0deg); }
         }
-        .glitch-active {
-            animation: glitch-shake 0.4s infinite;
-            border: 2px solid var(--accent-pink) !important;
-            box-shadow: 0 0 20px var(--accent-pink) !important;
-        }
+        .glitch-active { animation: glitch-shake 0.4s infinite; border: 2px solid var(--accent-pink) !important; box-shadow: 0 0 20px var(--accent-pink) !important; }
 
         header {
             border-bottom: 2px double var(--accent-pink); padding-bottom: 8px; margin-bottom: 15px;
@@ -53,17 +45,31 @@
         .panel {
             background: var(--panel-bg); border: 1px solid rgba(255, 42, 116, 0.2);
             padding: 20px; margin-bottom: 15px; box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
-            transition: all 0.3s ease;
         }
 
-        .stage-area { height: 300px; position: relative; border-left: 4px solid var(--accent-pink); cursor: pointer; }
+        .stage-area { height: 220px; position: relative; border-left: 4px solid var(--accent-pink); cursor: pointer; }
         .cast-info-bar { font-family: monospace; font-size: 11px; color: var(--accent-cyan); margin-bottom: 10px; }
-        .dialogue-box { font-size: 15px; line-height: 1.8; letter-spacing: 1px; color: #fff; }
+        .dialogue-box { font-size: 15px; line-height: 1.8; color: #fff; }
 
-        /* パラメーターメーター */
+        /* 📈 新設：不穏に波打つ心電図パルスコンソール */
+        .console-area {
+            height: 110px; background: #07050a; border: 1px dashed var(--accent-pink);
+            position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center;
+        }
+        .pulse-svg { width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
+        .pulse-line {
+            stroke: var(--accent-cyan); stroke-width: 2; fill: none;
+            stroke-dasharray: 1000; stroke-dashoffset: 1000;
+            animation: dash 3s linear infinite;
+            filter: drop-shadow(0 0 5px var(--accent-cyan));
+        }
+        @keyframes dash { to { stroke-dashoffset: 0; } }
+        .console-tag { position: absolute; top: 5px; left: 8px; font-size: 9px; color: var(--accent-pink); font-family: monospace; }
+
+        /* メーター */
         .meter-group { margin-bottom: 12px; }
         .meter-label { display: flex; justify-content: space-between; font-size: 11px; font-family: monospace; margin-bottom: 4px; color: #aaa; }
-        .meter-bg { background: #251d2d; height: 12px; border: 1px solid #3d2f4a; position: relative; }
+        .meter-bg { background: #251d2d; height: 12px; border: 1px solid #3d2f4a; }
         .meter-fill { height: 100%; width: 0%; background: var(--accent-cyan); transition: width 0.4s ease; box-shadow: 0 0 8px var(--accent-cyan); }
         .meter-fill.danger { background: var(--accent-pink); box-shadow: 0 0 8px var(--accent-pink); }
 
@@ -75,23 +81,32 @@
         .btn-grid { margin-bottom: 15px; text-align: center; }
         .ing-btn { background: #251d2d; border: 1px solid var(--accent-cyan); color: var(--accent-cyan); padding: 8px 12px; font-size: 11px; cursor: pointer; margin: 3px; }
         .ing-btn:hover { background: var(--accent-cyan); color: #000; }
+        .shop-unlocked-btn { border-color: var(--gold) !important; color: var(--gold) !important; display: none; } /* 🛒 アンロックアイテム用 */
 
         .action-zone { text-align: right; }
         .main-btn { background: var(--accent-pink); border: none; color: white; padding: 12px 30px; font-weight: bold; font-family: monospace; cursor: pointer; box-shadow: 0 0 10px var(--accent-pink); }
         .main-btn:disabled { background: #444; color: #888; box-shadow: none; cursor: not-allowed; }
 
-        /* 🎴 精算リザルトポップアップ */
+        /* ポップアップリザルト ＆ 🛒闇ショップUI */
         .modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(13, 10, 16, 0.9); display: none; justify-content: center; align-items: center; z-index: 9999;
+            background: rgba(13, 10, 16, 0.95); display: none; justify-content: center; align-items: center; z-index: 9999;
         }
-        .result-card { background: var(--panel-bg); border: 2px solid var(--accent-pink); box-shadow: 0 0 30px rgba(255, 42, 116, 0.4); padding: 30px; width: 420px; text-align: center; }
-        .result-title { font-size: 1.5rem; color: var(--accent-pink); text-shadow: 0 0 10px var(--accent-pink); border-bottom: 1px solid var(--accent-pink); padding-bottom: 10px; margin-bottom: 15px; font-family: monospace; }
-        .score-num { font-size: 2.5rem; font-weight: 900; color: #fff; text-shadow: 0 0 15px var(--accent-cyan); font-family: monospace; margin: 10px 0; }
+        .result-card { background: var(--panel-bg); border: 2px solid var(--accent-pink); box-shadow: 0 0 30px rgba(255, 42, 116, 0.4); padding: 25px; width: 460px; text-align: center; }
+        .result-title { font-size: 1.3rem; color: var(--accent-pink); text-shadow: 0 0 10px var(--accent-pink); border-bottom: 1px solid var(--accent-pink); padding-bottom: 8px; margin-bottom: 15px; font-family: monospace; }
         
-        /* リザルト用味覚表記 */
         .drink-display-box { background: #000; border: 1px solid #333; padding: 10px; margin: 10px 0; text-align: left; font-family: monospace; font-size: 12px; }
         .taste-radar-mini { color: var(--accent-cyan); font-size: 11px; margin-top: 5px; }
+        .score-num { font-size: 2.2rem; font-weight: 900; color: #fff; text-shadow: 0 0 15px var(--accent-cyan); font-family: monospace; }
+
+        /* ショップ売買パネル */
+        .shop-container {
+            margin: 15px 0; border: 1px dashed rgba(255, 230, 0, 0.3); padding: 12px; background: rgba(255, 230, 0, 0.02); text-align: left;
+        }
+        .shop-item-row { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; font-size: 11px; font-family: monospace; }
+        .buy-btn { background: transparent; border: 1px solid var(--gold); color: var(--gold); padding: 3px 8px; cursor: pointer; font-size: 10px; }
+        .buy-btn:hover { background: var(--gold); color: #000; }
+        .buy-btn:disabled { border-color: #555; color: #555; cursor: not-allowed; }
 
         .click-prompt { position: absolute; bottom: 15px; right: 20px; font-size: 11px; font-family: monospace; color: var(--accent-cyan); animation: blink 1.5s infinite; }
         @keyframes blink { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
@@ -110,12 +125,17 @@
             <div class="game-cell left-zone">
                 <div id="stage-panel" class="panel stage-area" onclick="handleStageClick()">
                     <div class="cast-info-bar">
-                        <span id="cast-id">RANK 01</span> // 
-                        <span id="cast-name">あむ / AMU</span> // 
-                        <span id="cast-status">STATUS: MONITORING</span>
+                        <span id="cast-id">RANK 01</span> // <span id="cast-name">あむ / AMU</span> // <span id="cast-status">STATUS: MONITORING</span>
                     </div>
                     <div id="dialogue-text" class="dialogue-box">有線接続中...</div>
                     <div class="click-prompt">▼ CLICK TO ADVANCE</div>
+                </div>
+
+                <div class="panel console-area">
+                    <div class="console-tag">[ REALTIME_BRAINWAVE_PULSE ]</div>
+                    <svg class="pulse-svg" viewBox="0 0 400 100">
+                        <path class="pulse-line" d="M 0 50 L 120 50 L 130 20 L 140 80 L 150 40 L 160 60 L 170 50 L 280 50 L 290 10 L 300 90 L 310 30 L 320 70 L 330 50 L 400 50" />
+                    </svg>
                 </div>
 
                 <div class="panel">
@@ -152,6 +172,9 @@
                         <button class="ing-btn" onclick="addIng('同期用ケチャップ')">同期用ケチャップ</button>
                         <button class="ing-btn" onclick="addIng('ドス黒いハーブ')">ドス黒いハーブ</button>
                         <button class="ing-btn" onclick="addIng('高周波ノイズ液')">高周波ノイズ液</button>
+                        
+                        <button id="btn-filter" class="ing-btn shop-unlocked-btn" onclick="addIng('高性能医療フィルター')">⚙️医療フィルター</button>
+                        <button id="btn-donut" class="ing-btn shop-unlocked-btn" onclick="addIng('サイバー・グリッチ・ドーナツ')">🍩グリッチドーナツ</button>
                     </div>
                     <div class="action-zone">
                         <button class="ing-btn" style="border-color:#555; color:#aaa;" onclick="clearMix()">クリア</button>
@@ -165,18 +188,32 @@
 
     <div id="result-screen" class="modal-overlay">
         <div class="result-card">
-            <div class="result-title">END OF DAY REPORT</div>
-            <div id="r-status" style="font-weight: bold; font-family: monospace; font-size: 14px;">-</div>
+            <div class="result-title">END OF DAY REPORT & SHOP</div>
+            <div id="r-status" style="font-weight: bold; font-family: monospace; font-size: 12px;">-</div>
             
             <div class="drink-display-box">
                 <div style="color: var(--accent-pink); font-weight: bold;">提供したドリンク:</div>
-                <div id="r-drink-name" style="color: #fff; font-size: 15px; margin: 2px 0; text-shadow: 0 0 5px var(--accent-cyan);">-</div>
-                <div id="r-drink-taste" class="taste-radar-mini">苦味:0 甘味:0 電波:0</div>
+                <div id="r-drink-name" style="color: #fff; font-size: 14px; margin: 2px 0; text-shadow: 0 0 5px var(--accent-cyan);">-</div>
+                <div id="r-drink-taste" class="taste-radar-mini">-</div>
             </div>
 
             <div class="score-num" id="r-earned">¥0</div>
-            <div style="font-size: 11px; color: #888; margin-bottom: 15px;">総資産残高: <span id="r-total" style="color: var(--gold);">¥0</span></div>
-            <button class="main-btn" onclick="closeResult()">次の営業日へ ➔</button>
+            <div style="font-size: 11px; color: #888; margin-bottom: 10px;">総資産残高: <span id="r-total" style="color: var(--gold);">¥0</span></div>
+            
+            <div class="shop-container">
+                <div style="font-size: 11px; color: var(--gold); font-weight: bold; border-bottom: 1px dashed rgba(255,230,0,0.4); padding-bottom: 3px;">[ 🌐 BLACK_MARKET_SHOP ]</div>
+                
+                <div class="shop-item-row">
+                    <div>⚙️ 備品: 高性能医療フィルター (¥1,500) <br><span style="color:#666;">➔ 調合時のノイズ成分を中和して電波を高める</span></div>
+                    <button id="shop-btn-filter" class="buy-btn" onclick="buyItem('FILTER')">購入</button>
+                </div>
+                <div class="shop-item-row">
+                    <div>🍩 フード: サイバー・グリッチ・ドーナツ (¥1,500) <br><span style="color:#666;">➔ 圧倒的な糖分でキャストの脳をハックする</span></div>
+                    <button id="shop-btn-donut" class="buy-btn" onclick="buyItem('DONUT')">購入</button>
+                </div>
+            </div>
+
+            <button class="main-btn" style="width: 100%; margin-top: 5px;" onclick="closeResult()">次の営業日へ ➔</button>
         </div>
     </div>
 
@@ -185,21 +222,19 @@
         let recipe = [];
         let isWaitingDrink = false;
         let pendingResultData = null;
+        let currentDay = 1;
 
-        // 🔊 ブラウザの標準機能（Web Audio API）を使って、機材不要で「ピピッ」という電子音を合成生成する関数
         function playBeep(freq = 800, duration = 0.05) {
             try {
                 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
                 const oscillator = audioCtx.createOscillator();
                 const gainNode = audioCtx.createGain();
-                oscillator.type = 'sine';
-                oscillator.frequency.value = freq;
-                gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime); // 音量は控えめに0.1
+                oscillator.type = 'sine'; oscillator.frequency.value = freq;
+                gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
                 gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
-                oscillator.connect(gainNode);
-                gainNode.connect(audioCtx.destination);
+                oscillator.connect(gainNode); gainNode.connect(audioCtx.destination);
                 oscillator.start(); oscillator.stop(audioCtx.currentTime + duration);
-            } catch(e) { console.log("Audio Context blocked."); }
+            } catch(e) {}
         }
 
         function updateMeterDOM(key, val) {
@@ -219,12 +254,12 @@
                 if (recipe[i]) { s.innerText = recipe[i]; s.classList.add('filled'); }
                 else { s.innerText = i===0?"ベース":i===1?"メイン":"トッピング"; s.classList.remove('filled'); }
             }
-            const isFull = (recipe.length === 3);
-            document.getElementById('serve-btn').disabled = (!isWaitingDrink || !isFull);
+            document.getElementById('serve-btn').disabled = (!isWaitingDrink || recipe.length !== 3);
         }
 
         function syncWithJava(data) {
             const frame = data.frame;
+            currentDay = frame.day;
             document.getElementById('dialogue-text').innerText = frame.text;
             document.getElementById('cast-id').innerText = frame.castId;
             document.getElementById('cast-name').innerText = frame.name;
@@ -236,13 +271,23 @@
             updateMeterDOM('noise', data.waveNoise);
             updateMeterDOM('sync', data.syncRate);
 
-            // ⚠️ りのの精神状態が暴走・クラッシュしているとき、画面全体のパネルに「シェイク（グリッチ）」を付与！
+            // りの暴走時の画面シェイクとパルス波形速度の変更
             const stagePanel = document.getElementById('stage-panel');
+            const pulseLine = document.querySelector('.pulse-line');
             if (frame.status === "OVERCLOCKED" || frame.status === "CRASHED") {
                 stagePanel.classList.add('glitch-active');
-                playBeep(250, 0.3); // 不穏なエラーの低音SEを鳴らす
+                if(pulseLine) pulseLine.style.animationDuration = "0.5s"; // パルスが激しく波打つ
+                playBeep(250, 0.3);
             } else {
                 stagePanel.classList.remove('glitch-active');
+                if(pulseLine) pulseLine.style.animationDuration = "3s";
+            }
+
+            // 🛒 ショップ解禁アイテムのボタン表示制御（2日目かつ購入済みの場合のみ表示）
+            if (currentDay === 2 && data.unlockedItem === "FILTER") {
+                document.getElementById('btn-filter').style.display = "inline-block";
+            } else if (currentDay === 2 && data.unlockedItem === "DONUT") {
+                document.getElementById('btn-donut').style.display = "inline-block";
             }
 
             isWaitingDrink = (frame.type === "wait_drink" || frame.status === "WAITING");
@@ -250,7 +295,7 @@
         }
 
         function handleStageClick() {
-            playBeep(1000, 0.03); // クリック音
+            playBeep(1000, 0.03);
             if (pendingResultData) {
                 showResultScreen(pendingResultData);
                 pendingResultData = null;
@@ -260,7 +305,7 @@
         }
 
         function showResultScreen(data) {
-            playBeep(600, 0.1); // ポップアップ解放音
+            playBeep(600, 0.1);
             const isSuccess = (data.earnedToday === 2000); 
             const castName = data.frame.name;
             
@@ -272,13 +317,35 @@
                 document.getElementById('r-status').style.color = "#ff0055";
             }
             
-            // 📝 ドリンク名と裏パラメーター数値をネオンポップアップに焼き付ける
             document.getElementById('r-drink-name').innerText = data.drinkName;
-            document.getElementById('r-drink-taste').innerText = `[ 苦味(Bitter): ${data.bitterness} // 甘味(Sweet): ${data.sweetness} // 電波(Pulse): ${data.cyberPulse} ]`;
-
+            document.getElementById('r-drink-taste').innerText = `[ 苦味: ${data.bitterness} // 甘味: ${data.sweetness} // 電波: ${data.cyberPulse} ]`;
             document.getElementById('r-earned').innerText = `¥${data.earnedToday.toLocaleString()}`;
             document.getElementById('r-total').innerText = `¥${data.wallet.toLocaleString()}`;
+
+            // 🛒 ショップボタンの活性・非活性制御（1日目の夜だけ購入可能、残高1500円以上）
+            const canBuy = (currentDay === 1 && data.wallet >= 1500 && data.unlockedItem === "NONE");
+            document.getElementById('shop-btn-filter').disabled = !canBuy;
+            document.getElementById('shop-btn-donut').disabled = !canBuy;
+            
+            if (data.unlockedItem === "FILTER") document.getElementById('shop-btn-filter').innerText = "売切";
+            if (data.unlockedItem === "DONUT") document.getElementById('shop-btn-donut').innerText = "売切";
+
             document.getElementById('result-screen').style.display = "flex";
+        }
+
+        // 🛒 新設：ショップアイテムを購入する通信
+        async function buyItem(itemName) {
+            playBeep(1400, 0.1);
+            try {
+                const response = await fetch(`${API_BASE}/buy`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ item: itemName })
+                });
+                const data = await response.json();
+                showResultScreen(data); // ショップ画面の数値をリアルタイム更新
+                document.getElementById('sys-wallet').innerText = `WALLET: ¥${data.wallet.toLocaleString()}`;
+            } catch(e) { console.error(e); }
         }
 
         function closeResult() {
@@ -320,14 +387,14 @@
         }
 
         function addIng(name) {
-            playBeep(900, 0.02); // 素材投入時のピピッ音
+            playBeep(900, 0.02);
             if (recipe.length >= 3) return;
             recipe.push(name);
             updateMixUI();
         }
 
         function clearMix() {
-            playBeep(300, 0.05); // クリア音
+            playBeep(300, 0.05);
             recipe = [];
             updateMixUI();
         }
