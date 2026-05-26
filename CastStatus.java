@@ -96,3 +96,7 @@ public class CastStatus {
     public int getWaveNoise() { return waveNoise; }
     public int getSyncRate() { return syncRate; }
 }
+// （CastStatus.java の最下部に以下を追加してください。既存のコードはそのままでOKです）
+    public void setSleepDebt(int sleepDebt) { this.sleepDebt = sleepDebt; }
+    public void setWaveNoise(int waveNoise) { this.waveNoise = waveNoise; }
+    public void setSyncRate(int syncRate) { this.syncRate = syncRate; }
