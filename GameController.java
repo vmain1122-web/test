@@ -37,7 +37,7 @@ public class GameController {
             this.earnedToday = 2000; // チェキ代＋ドリンク売上大成功！
         } else {
             scenarioEngine.routeBranch("FAILURE");
-            this.earnedToday = 0;    // 怒られて売上ゼロ…
+            this.earnedToday = 1000;    
         }
         
         this.wallet += this.earnedToday; // お財布にガサ入れ
