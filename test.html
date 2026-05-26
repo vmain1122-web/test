@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>MAID_CORE // CAS_COFFEE_TALK Prototype</title>
+    <style>
+        :root {
+            --bg-color: #0a0505;
+            --terminal-green: #39ff14;
+            --blood-red: #8b0000;
+            --text-color: #f0e6d2;
+            --panel-bg: rgba(20, 10, 10, 0.85);
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'MS Mincho', 'Hiragino Mincho ProN', serif;
+            margin: 0;
+            padding: 20px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 95vh;
+        }
+
+        /* ハッキングノイズ風背景効果 */
+        body::before {
+            content: " ";
+            display: block;
+            position: fixed;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 2;
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+        }
+
+        /* ヘッダー情報 */
+        header {
+            border-bottom: 2px double var(--blood-red);
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            font-family: monospace;
+            color: var(--blood-red);
+        }
+
+        /* メインゲーム画面構造 */
+        .game-container {
+            display: grid;
+            grid-template-columns: 3fr 2fr;
+            gap: 20px;
+            flex-grow: 1;
+        }
+
+        /* 左側：キャストの立ち絵＆会話ウインドウ */
+        .stage-area {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            background: var(--panel-bg);
+            border: 1px solid var(--blood-red);
+            padding: 20px;
+            position: relative;
+        }
+
+        .cast-avatar-sub {
+            font-size: 12px;
+            color: #666;
+            font-family: monospace;
+        }
+
+        .cast-graphic {
+            text-align: center;
+            font-size: 18px;
+            color: #aaa;
+            margin-top: 50px;
+            border: 1px dashed #444;
+            padding: 60px 0;
+            background: rgba(0,0,0,0.5);
+        }
+
+        /* カスのテキストボックス */
+        .dialogue-box {
+            background: rgba(0, 0, 0, 0.9);
+            border-top: 3px double var(--blood-red);
+            padding: 15px;
+            min-height: 100px;
+            font-size: 18px;
+            line-height: 1.6;
+        }
+
+        .speaker-name {
+            color: var(--blood-red);
+            font-weight: bold;
+            margin-bottom: 5px;
+            font-size: 14px;
+            letter-spacing: 2px;
+        }
+
+        /* 右側：調合（カスのバーカウンター）パネル */
+        .counter-area {
+            background: var(--panel-bg);
+            border: 1px solid #444;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        h2 {
+            font-size: 16px;
+            margin: 0;
+            color: #ccc;
+            border-left: 3px solid var(--blood-red);
+            padding-left: 8px;
+        }
+
+        .ingredient-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .btn-ingredient {
+            background: #1a1010;
+            border: 1px solid #555;
+            color: var(--text-color);
+            padding: 10px;
+            cursor: pointer;
+            text-align: left;
+            font-family: inherit;
+        }
+
+        .btn-ingredient:hover {
+            background: var(--blood-red);
+            border-color: #ff3333;
+        }
+
+        /* 現在のカップの中身 */
+        .current-mix {
+            background: #000;
+            border: 1px solid #333;
+            padding: 10px;
+            flex-grow: 1;
+            font-family: monospace;
+            font-size: 13px;
+        }
+
+        .btn-serve {
+            background: #3a0000;
+            border: 1px solid var(--blood-red);
+            color: #fff;
+            padding: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            letter-spacing: 4px;
+        }
+
+        .btn-serve:hover {
+            background: var(--blood-red);
+            box-shadow: 0 0 10px rgba(139,0,0,0.8);
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div>SYSTEM: MAID_CORE // COUNTER_SECTION_01</div>
+        <div>SAN_CHECK: [CRITICAL_LOW]</div>
+    </header>
+
+    <div class="game-container">
+        <div class="stage-area">
+            <div>
+                <div class="speaker-name">RANK 01 : あむ (AMU)</div>
+                <div class="cast-avatar-sub">STATUS: SEVERE_SLEEP_DEPRIVATION（重度睡眠不足）</div>
+                
+                <div class="cast-graphic">
+                    【 銀髪ツインテール・虚ろな目・目の下にクマ 】
+                </div>
+            </div>
+
+            <div class="dialogue-box">
+                <div id="text-target">「…ねぇ、マスター。あむ、もう32時間起きてる。頭の裏側で変なパケットがずっと鳴ってるの……ねぇ、いつもの『お薬多め』のやつ、はやく淹れて？」</div>
+            </div>
+        </div>
+
+        <div class="counter-area">
+            <h2>【素材調合システム（お給仕）】</h2>
+            <div class="ingredient-grid">
+                <button class="btn-ingredient" onclick="addIngredient('格安睡眠導入剤')">🧪 格安睡眠導入剤</button>
+                <button class="btn-ingredient" onclick="addIngredient('同期用ケチャップ')">🍅 同期用ケチャップ</button>
+                <button class="btn-ingredient" onclick="addIngredient('謎のドス黒いハーブ')">🌿 謎のドス黒いハーブ</button>
+                <button class="btn-ingredient" onclick="addIngredient('期限切れ業務用ミルク')">🥛 期限切れミルク</button>
+            </div>
+
+            <h2>【現在のカップ内パケット】</h2>
+            <div class="current-mix" id="mix-bucket">
+                -- 空のカップ --
+            </div>
+
+            <button class="btn-serve" onclick="serveDrink()">【 精神同期（お給仕実行） 】</button>
+        </div>
+    </div>
+
+    <script>
+        let currentMix = [];
+
+        function addIngredient(name) {
+            if (currentMix.length >= 3) {
+                alert("カップがカスの液体で溢れます（最大3素材）");
+                return;
+            }
+            currentMix.push(name);
+            updateDisplay();
+        }
+
+        function updateDisplay() {
+            const bucket = document.getElementById('mix-bucket');
+            if (currentMix.length === 0) {
+                bucket.innerHTML = "-- 空のカップ --";
+            } else {
+                bucket.innerHTML = currentMix.map((item, idx) => `[SLOT ${idx+1}] ${item}`).join('<br>');
+            }
+        }
+
+        // 本来はここからJava（Spring Boot）のAPIを叩く
+        function serveDrink() {
+            if (currentMix.length === 0) {
+                alert("空のコップを出すのはさすがにカスすぎる");
+                return;
+            }
+            
+            // Javaバックエンドに送るJSONデータのシミュレーション
+            const requestPayload = {
+                castId: "AMU",
+                ingredients: currentMix
+            };
+            
+            console.log("Javaのコントローラーへ送信:", requestPayload);
+            
+            // 簡易擬似レスポンス処理
+            const target = document.getElementById('text-target');
+            if (currentMix.includes('格安睡眠導入剤') && currentMix.includes('同期用ケチャップ')) {
+                target.innerText = "「…ん、これこれ。脳のノイズが静かになっていく……。ありがと、マスター。これでお仕事がんばれるから、あむの次のチェキ、10枚予約してね？」";
+            } else {
+                target.innerText = "「……なにこれ。こんなの求めてない。マスター、あむを殺す気？……あむが死んだら、遺書にマスターのリアルIPアドレス書いてあげるから」";
+            }
+            
+            // リセット
+            currentMix = [];
+            updateDisplay();
+        }
+    </script>
+</body>
+</html>
