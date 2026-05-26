@@ -4,6 +4,7 @@ import java.util.List;
 
 public class GameEngine {
     private ScenarioEngine scenarioEngine;
+    private BrewedDrink lastBrewedDrink; // 直前に淹れたドリンクを保持
 
     public GameEngine(ScenarioEngine scenarioEngine) {
         this.scenarioEngine = scenarioEngine;
@@ -11,28 +12,59 @@ public class GameEngine {
 
     public void processServing(CastStatus status, List<String> ingredients) {
         if (ingredients == null || ingredients.size() < 3) {
+            this.lastBrewedDrink = new BrewedDrink("ただの濁った泥水", 0, 0, 0);
             scenarioEngine.routeBranch("FAILURE");
             return;
         }
 
-        // 1. レシピ名の判定ロジック（コーヒートーク風）
-        String drinkName = determineDrinkName(ingredients);
-        System.out.println("【調合完了】生み出された液体: 「" + drinkName + "」");
+        // 🧪 1. 材料から「味覚パラメーター」を裏で動的合算する（コーヒートーク仕様）
+        int totalBitterness = 0;
+        int totalSweetness = 0;
+        int totalCyberPulse = 0;
 
-        // 2. 材料の成分を精神に適用
+        for (String ing : ingredients) {
+            switch (ing) {
+                case "安価な睡眠薬":
+                    totalBitterness += 3; totalCyberPulse += 1;
+                    break;
+                case "同期用ケチャップ":
+                    totalSweetness += 3;
+                    break;
+                case "ドス黒いハーブ":
+                    totalBitterness += 2; totalSweetness += 1;
+                    break;
+                case "高周波ノイズ液":
+                    totalCyberPulse += 4; totalBitterness += 1;
+                    break;
+            }
+        }
+
+        // 🧪 2. 味覚パラメーターの比率から、ドリンク名を特殊判定
+        String drinkName = "ただの濁った泥水";
+        if (totalBitterness >= 6 && totalBitterness <= 8 && totalCyberPulse == 1) {
+            drinkName = "ディープスリープ・ブレンド";
+        } else if (totalCyberPulse >= 8 && totalSweetness == 3) {
+            drinkName = "サイバー・バグ・サイダー";
+        } else if (totalSweetness == 9) {
+            drinkName = "血のインシデント・ラテ";
+        } else if (totalBitterness >= 5 && totalSweetness >= 3) {
+            drinkName = "共依存ビター・ココア";
+        }
+
+        // インスタンス化して保存
+        this.lastBrewedDrink = new BrewedDrink(drinkName, totalBitterness, totalSweetness, totalCyberPulse);
+
+        // 3. キャストの精神ステータスに成分を適用
         status.applyIngredients(ingredients);
 
-        // 3. キャストごとのレシピ完全一致、またはステータス条件でジャッジ
+        // 4. クリア条件ジャッジ
         boolean isSatisfied = false;
         if (status.getCastId().equals("AMU")) {
-            // あむは「ディープスリープ・ブレンド」が作れていれば大成功！
             isSatisfied = drinkName.equals("ディープスリープ・ブレンド") || status.isAmuSatisfied();
         } else if (status.getCastId().equals("RINO")) {
-            // りのは「サイバー・バグ・サイダー」が作れていれば大成功！
             isSatisfied = drinkName.equals("サイバー・バグ・サイダー") || status.isRinoSatisfied();
         }
 
-        // 4. ルート分岐
         if (isSatisfied) {
             scenarioEngine.routeBranch("SUCCESS");
         } else {
@@ -40,31 +72,7 @@ public class GameEngine {
         }
     }
 
-    // 🧪 3つの材料の組み合わせから、特別なドリンク名を抽出するメソッド
-    private String determineDrinkName(List<String> ingredients) {
-        int sleepCount = 0;
-        int ketchupCount = 0;
-        int herbCount = 0;
-        int noiseCount = 0;
-
-        for (String ing : ingredients) {
-            if (ing.equals("安価な睡眠薬")) sleepCount++;
-            if (ing.equals("同期用ケチャップ")) ketchupCount++;
-            if (ing.equals("ドス黒いハーブ")) herbCount++;
-            if (ing.equals("高周波ノイズ液")) noiseCount++;
-        }
-
-        // レシピ判定
-        if (sleepCount == 2 && herbCount == 1) {
-            return "ディープスリープ・ブレンド";
-        }
-        if (noiseCount == 2 && ketchupCount == 1) {
-            return "サイバー・バグ・サイダー";
-        }
-        if (ketchupCount == 3) {
-            return "血のインシデント・ラテ";
-        }
-
-        return "ただの濁った泥水";
+    public BrewedDrink getLastBrewedDrink() {
+        return this.lastBrewedDrink;
     }
 }
