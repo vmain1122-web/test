@@ -1,4 +1,5 @@
-package com.example.demo; // ★これを1行目に追加！
+package com.example.demo;
+
 import java.util.List;
 
 public class GameEngine {
@@ -8,22 +9,29 @@ public class GameEngine {
         this.scenarioEngine = scenarioEngine;
     }
 
-    // コントローラーからキャストのステータスと材料を受け取るように修正
     public void processServing(CastStatus status, List<String> ingredients) {
         if (ingredients == null || ingredients.size() < 3) {
             scenarioEngine.routeBranch("FAILURE");
             return;
         }
 
-        // 1. 材料の成分をキャストの精神に適用（フーカーヘイズ要素）
+        // 1. 材料の成分を精神に適用
         status.applyIngredients(ingredients);
 
-        // 2. キャストの満足度（クリア条件）をジャッジ
-        if (status.isAmuSatisfied()) {
-            System.out.println("【有線判定】お給仕大成功：あむの脳波同調に成功しました。");
+        // 2. キャストごとに異なるクリア条件でジャッジ
+        boolean isSatisfied = false;
+        if (status.getCastId().equals("AMU")) {
+            isSatisfied = status.isAmuSatisfied();
+        } else if (status.getCastId().equals("RINO")) {
+            isSatisfied = status.isRinoSatisfied();
+        }
+
+        // 3. ルート分岐
+        if (isSatisfied) {
+            System.out.println("【判定】" + status.getCastId() + " の脳波調律・同調に大成功しました！");
             scenarioEngine.routeBranch("SUCCESS");
         } else {
-            System.out.println("【有線判定】お給仕失敗：ただのカスの液体です。");
+            System.out.println("【判定】" + status.getCastId() + " の調合に失敗。脳が拒絶しています。");
             scenarioEngine.routeBranch("FAILURE");
         }
     }
