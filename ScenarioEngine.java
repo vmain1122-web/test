@@ -85,3 +85,6 @@ public class ScenarioEngine {
         }
     }
 }
+// （ScenarioEngine.java の最下部に以下を追加してください。既存のコードはそのままでOKです）
+    public int getCurrentPointer() { return this.currentPointer; }
+    public void setCurrentPointer(int pointer) { this.currentPointer = pointer; }
