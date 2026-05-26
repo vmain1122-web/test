@@ -11,7 +11,6 @@ public class GameController {
     private final ScenarioEngine scenarioEngine = new ScenarioEngine();
     private final GameEngine gameEngine = new GameEngine(scenarioEngine);
     
-    // 👥 各キャストのステータス管理（りのはノイズ100%で参戦！）
     private final CastStatus amuStatus = new CastStatus("AMU", 80, 60, 20);
     private final CastStatus rinoStatus = new CastStatus("RINO", 30, 100, 10);
     
@@ -20,37 +19,34 @@ public class GameController {
 
     @GetMapping("/state")
     public GameStateResponse getCurrentState() {
-        return buildResponse();
+        return buildResponse(new BrewedDrink("-", 0, 0, 0));
     }
 
     @PostMapping("/advance")
     public GameStateResponse advanceText() {
         scenarioEngine.advance();
-        return buildResponse();
+        return buildResponse(new BrewedDrink("-", 0, 0, 0));
     }
 
     @PostMapping("/serve")
     public GameStateResponse serveDrink(@RequestBody List<String> ingredients) {
-        // 現在のタイムラインの進捗から、どちらのキャストにお給仕しているか判断する
         DialogueFrame currentFrame = scenarioEngine.getCurrentFrame();
         CastStatus activeStatus = currentFrame.getDay() == 1 ? amuStatus : rinoStatus;
         
-        // ジャッジ実行
         gameEngine.processServing(activeStatus, ingredients);
         
-        // 判定された結末から売上金を精算
         DialogueFrame nextFrame = scenarioEngine.getCurrentFrame();
         if (nextFrame.getStatus().equals("STABLE") || nextFrame.getStatus().equals("OVERCLOCKED")) {
-            this.earnedToday = 2000; // 大成功！
+            this.earnedToday = 2000;
         } else {
-            this.earnedToday = 1000; // 最低保証！
+            this.earnedToday = 1000;
         }
         
         this.wallet += this.earnedToday;
-        return buildResponse();
+        return buildResponse(gameEngine.getLastBrewedDrink());
     }
 
-    private GameStateResponse buildResponse() {
+    private GameStateResponse buildResponse(BrewedDrink drink) {
         DialogueFrame currentFrame = scenarioEngine.getCurrentFrame();
         CastStatus activeStatus = currentFrame.getDay() == 1 ? amuStatus : rinoStatus;
 
@@ -60,7 +56,11 @@ public class GameController {
             activeStatus.getWaveNoise(),
             activeStatus.getSyncRate(),
             this.wallet,
-            this.earnedToday
+            this.earnedToday,
+            drink.getName(),
+            drink.getBitterness(),
+            drink.getSweetness(),
+            drink.getCyberPulse()
         );
     }
 
@@ -71,14 +71,23 @@ public class GameController {
         public int syncRate;
         public int wallet;
         public int earnedToday;
+        // 📥 追加された味覚データパケット
+        public String drinkName;
+        public int bitterness;
+        public int sweetness;
+        public int cyberPulse;
 
-        public GameStateResponse(DialogueFrame frame, int sleep, int noise, int sync, int wallet, int earned) {
+        public GameStateResponse(DialogueFrame frame, int sleep, int noise, int sync, int wallet, int earned, String dName, int b, int s, int c) {
             this.frame = frame;
             this.sleepDebt = sleep;
             this.waveNoise = noise;
             this.syncRate = sync;
             this.wallet = wallet;
             this.earnedToday = earned;
+            this.drinkName = dName;
+            this.bitterness = b;
+            this.sweetness = s;
+            this.cyberPulse = c;
         }
     }
 }
