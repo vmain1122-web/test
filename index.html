@@ -2,238 +2,98 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>MAID_CORE // BACKYARD_PORTAL_METER v5</title>
+    <title>MAID_CORE // BACKYARD_PORTAL_METER v6</title>
     <style>
-        /* ─── 共有された「裏庭ポータル」のカラーパレット & 世界観を完全移植 ─── */
         :root {
-            --bg-color: #0d0a10;       /* 深い闇、ほんのり紫がかった黒 */
-            --panel-bg: #16121c;       /* カードの背景 */
-            --text-color: #d6cadd;     /* くすんだ白、サイバーノスタルジー */
-            --accent-pink: #ff2a74;    /* ディープなネオンピンク */
-            --accent-cyan: #00f3ff;    /* サイバーなシアン */
-            --terminal-green: #39ff14; /* 大成功用のネオン */
+            --bg-color: #0d0a10;
+            --panel-bg: #16121c;
+            --text-color: #d6cadd;
+            --accent-pink: #ff2a74;
+            --accent-cyan: #00f3ff;
+            --terminal-green: #39ff14;
             --gold: #ffe600;
         }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
 
         body {
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            font-family: 'Courier New', Courier, 'Courier', 'Hiragino Kaku Gothic ProN', sans-serif;
-            line-height: 1.6;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            height: 95vh;
-            overflow: hidden;
+            background-color: var(--bg-color); color: var(--text-color);
+            font-family: 'Courier New', Courier, 'Hiragino Kaku Gothic ProN', sans-serif;
+            padding: 20px; display: flex; flex-direction: column; height: 95vh; overflow: hidden;
+        }
+
+        /* ⚡ 画面シェイク（グリッチ）アニメーション効果 */
+        @keyframes glitch-shake {
+            0% { transform: translate(0, 0) skewX(0deg); }
+            10% { transform: translate(-3px, 2px) skewX(-2deg); }
+            20% { transform: translate(3px, -1px) skewX(3deg); }
+            30% { transform: translate(-1px, -2px) skewX(0deg); }
+            40% { transform: translate(2px, 3px) skewX(1deg); }
+            50% { transform: translate(-3px, 1px) skewX(-1deg); }
+            60% { transform: translate(0, 0) skewX(0deg); }
+            100% { transform: translate(0, 0) skewX(0deg); }
+        }
+        .glitch-active {
+            animation: glitch-shake 0.4s infinite;
+            border: 2px solid var(--accent-pink) !important;
+            box-shadow: 0 0 20px var(--accent-pink) !important;
         }
 
         header {
-            border-bottom: 2px double var(--accent-pink);
-            padding-bottom: 8px;
-            margin-bottom: 15px;
-            display: flex;
-            justify-content: space-between;
-            font-family: monospace;
-            color: var(--accent-pink);
-            font-size: 12px;
+            border-bottom: 2px double var(--accent-pink); padding-bottom: 8px; margin-bottom: 15px;
+            display: flex; justify-content: space-between; font-family: monospace; color: var(--accent-pink); font-size: 12px;
             text-shadow: 0 0 5px var(--accent-pink);
         }
 
-        /* ─── レイアウト ─── */
-        .game-container {
-            display: block; /* WeasyPrint / ブラウザ互換のための安全なブロック配置 */
-            width: 100%;
-            height: calc(100% - 40px);
-        }
+        .game-container { width: 100%; height: calc(100% - 40px); }
+        .game-table { display: table; width: 100%; height: 100%; table-layout: fixed; }
+        .game-cell { display: table-cell; vertical-align: top; padding: 10px; }
+        .left-zone { width: 55%; } .right-zone { width: 45%; }
 
-        /* テーブル構造を模して左右に分割 */
-        .game-table {
-            display: table;
-            width: 100%;
-            height: 100%;
-            table-layout: fixed;
-        }
-
-        .game-cell {
-            display: table-cell;
-            vertical-align: top;
-            padding: 10px;
-        }
-
-        .left-zone { width: 55%; }
-        .right-zone { width: 45%; }
-
-        /* ─── 各種コンポーネント（裏庭ポータル風） ─── */
         .panel {
-            background: var(--panel-bg);
-            border: 1px solid rgba(255, 42, 116, 0.2);
-            padding: 20px;
-            margin-bottom: 15px;
-            box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+            background: var(--panel-bg); border: 1px solid rgba(255, 42, 116, 0.2);
+            padding: 20px; margin-bottom: 15px; box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+            transition: all 0.3s ease;
         }
 
-        .stage-area {
-            height: 300px;
-            position: relative;
-            border-left: 4px solid var(--accent-pink);
-        }
-
-        .cast-info-bar {
-            font-family: monospace;
-            font-size: 11px;
-            color: var(--accent-cyan);
-            margin-bottom: 10px;
-        }
-
-        .dialogue-box {
-            font-size: 15px;
-            line-height: 1.8;
-            letter-spacing: 1px;
-            color: #fff;
-        }
+        .stage-area { height: 300px; position: relative; border-left: 4px solid var(--accent-pink); cursor: pointer; }
+        .cast-info-bar { font-family: monospace; font-size: 11px; color: var(--accent-cyan); margin-bottom: 10px; }
+        .dialogue-box { font-size: 15px; line-height: 1.8; letter-spacing: 1px; color: #fff; }
 
         /* パラメーターメーター */
-        .meter-group {
-            margin-bottom: 12px;
-        }
-        .meter-label {
-            display: flex;
-            justify-content: space-between;
-            font-size: 11px;
-            font-family: monospace;
-            margin-bottom: 4px;
-            color: #aaa;
-        }
-        .meter-bg {
-            background: #251d2d;
-            height: 12px;
-            border: 1px solid #3d2f4a;
-            position: relative;
-        }
-        .meter-fill {
-            height: 100%;
-            width: 0%;
-            background: var(--accent-cyan);
-            transition: width 0.4s ease;
-            box-shadow: 0 0 8px var(--accent-cyan);
-        }
-        .meter-fill.danger {
-            background: var(--accent-pink);
-            box-shadow: 0 0 8px var(--accent-pink);
-        }
+        .meter-group { margin-bottom: 12px; }
+        .meter-label { display: flex; justify-content: space-between; font-size: 11px; font-family: monospace; margin-bottom: 4px; color: #aaa; }
+        .meter-bg { background: #251d2d; height: 12px; border: 1px solid #3d2f4a; position: relative; }
+        .meter-fill { height: 100%; width: 0%; background: var(--accent-cyan); transition: width 0.4s ease; box-shadow: 0 0 8px var(--accent-cyan); }
+        .meter-fill.danger { background: var(--accent-pink); box-shadow: 0 0 8px var(--accent-pink); }
 
-        /* 調合UIカウンター */
-        .mix-slots {
-            display: table;
-            width: 100%;
-            table-layout: fixed;
-            margin-bottom: 15px;
-            text-align: center;
-        }
-        .slot {
-            display: table-cell;
-            background: #251d2d;
-            border: 1px dashed var(--accent-pink);
-            padding: 15px 5px;
-            font-size: 11px;
-            color: #777;
-        }
-        .slot.filled {
-            background: rgba(255, 42, 116, 0.15);
-            border-style: solid;
-            color: #fff;
-            text-shadow: 0 0 5px var(--accent-pink);
-        }
+        /* 調合UI */
+        .mix-slots { display: table; width: 100%; table-layout: fixed; margin-bottom: 15px; text-align: center; }
+        .slot { display: table-cell; background: #251d2d; border: 1px dashed var(--accent-pink); padding: 15px 5px; font-size: 11px; color: #777; }
+        .slot.filled { background: rgba(255, 42, 116, 0.15); border-style: solid; color: #fff; text-shadow: 0 0 5px var(--accent-pink); }
 
-        /* ボタン類のスタイリング */
-        .btn-grid {
-            margin-bottom: 15px;
-            text-align: center;
-        }
-        .ing-btn {
-            background: #251d2d;
-            border: 1px solid var(--accent-cyan);
-            color: var(--accent-cyan);
-            padding: 8px 12px;
-            font-size: 11px;
-            cursor: pointer;
-            margin: 3px;
-        }
-        .ing-btn:hover {
-            background: var(--accent-cyan);
-            color: #000;
-        }
+        .btn-grid { margin-bottom: 15px; text-align: center; }
+        .ing-btn { background: #251d2d; border: 1px solid var(--accent-cyan); color: var(--accent-cyan); padding: 8px 12px; font-size: 11px; cursor: pointer; margin: 3px; }
+        .ing-btn:hover { background: var(--accent-cyan); color: #000; }
 
-        .action-zone {
-            text-align: right;
-        }
-        .main-btn {
-            background: var(--accent-pink);
-            border: none;
-            color: white;
-            padding: 12px 30px;
-            font-weight: bold;
-            font-family: monospace;
-            cursor: pointer;
-            box-shadow: 0 0 10px var(--accent-pink);
-        }
-        .main-btn:disabled {
-            background: #444;
-            color: #888;
-            box-shadow: none;
-            cursor: not-allowed;
-        }
+        .action-zone { text-align: right; }
+        .main-btn { background: var(--accent-pink); border: none; color: white; padding: 12px 30px; font-weight: bold; font-family: monospace; cursor: pointer; box-shadow: 0 0 10px var(--accent-pink); }
+        .main-btn:disabled { background: #444; color: #888; box-shadow: none; cursor: not-allowed; }
 
-        /* ─── 🎴 精算リザルト画面（ポップアップオーバーレイ） ─── */
+        /* 🎴 精算リザルトポップアップ */
         .modal-overlay {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(13, 10, 16, 0.9);
-            display: none; /* 初期状態は非表示 */
-            justify-content: center;
-            align-items: center;
-            z-index: 9999;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(13, 10, 16, 0.9); display: none; justify-content: center; align-items: center; z-index: 9999;
         }
-        .result-card {
-            background: var(--panel-bg);
-            border: 2px solid var(--accent-pink);
-            box-shadow: 0 0 30px rgba(255, 42, 116, 0.4);
-            padding: 30px;
-            width: 400px;
-            text-align: center;
-        }
-        .result-title {
-            font-size: 1.5rem;
-            color: var(--accent-pink);
-            text-shadow: 0 0 10px var(--accent-pink);
-            border-bottom: 1px solid var(--accent-pink);
-            padding-bottom: 10px;
-            margin-bottom: 20px;
-            font-family: monospace;
-        }
-        .score-num {
-            font-size: 3rem;
-            font-weight: 900;
-            color: #fff;
-            text-shadow: 0 0 15px var(--accent-cyan);
-            font-family: monospace;
-            margin: 15px 0;
-        }
+        .result-card { background: var(--panel-bg); border: 2px solid var(--accent-pink); box-shadow: 0 0 30px rgba(255, 42, 116, 0.4); padding: 30px; width: 420px; text-align: center; }
+        .result-title { font-size: 1.5rem; color: var(--accent-pink); text-shadow: 0 0 10px var(--accent-pink); border-bottom: 1px solid var(--accent-pink); padding-bottom: 10px; margin-bottom: 15px; font-family: monospace; }
+        .score-num { font-size: 2.5rem; font-weight: 900; color: #fff; text-shadow: 0 0 15px var(--accent-cyan); font-family: monospace; margin: 10px 0; }
+        
+        /* リザルト用味覚表記 */
+        .drink-display-box { background: #000; border: 1px solid #333; padding: 10px; margin: 10px 0; text-align: left; font-family: monospace; font-size: 12px; }
+        .taste-radar-mini { color: var(--accent-cyan); font-size: 11px; margin-top: 5px; }
 
-        /* クリックを促す点滅インジケータ */
-        .click-prompt {
-            position: absolute;
-            bottom: 15px; right: 20px;
-            font-size: 11px; font-family: monospace;
-            color: var(--accent-cyan);
-            animation: blink 1.5s infinite;
-        }
+        .click-prompt { position: absolute; bottom: 15px; right: 20px; font-size: 11px; font-family: monospace; color: var(--accent-cyan); animation: blink 1.5s infinite; }
         @keyframes blink { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
     </style>
 </head>
@@ -248,29 +108,24 @@
         <div class="game-table">
             
             <div class="game-cell left-zone">
-                <div class="panel stage-area" onclick="handleStageClick()">
+                <div id="stage-panel" class="panel stage-area" onclick="handleStageClick()">
                     <div class="cast-info-bar">
                         <span id="cast-id">RANK 01</span> // 
                         <span id="cast-name">あむ / AMU</span> // 
-                        <span id="cast-status">STATUS: SEVERE_SLEEP_DEPRIVATION</span>
+                        <span id="cast-status">STATUS: MONITORING</span>
                     </div>
-                    <div id="dialogue-text" class="dialogue-box">
-                        有線接続中... システムログをロードしています。
-                    </div>
+                    <div id="dialogue-text" class="dialogue-box">有線接続中...</div>
                     <div class="click-prompt">▼ CLICK TO ADVANCE</div>
                 </div>
 
                 <div class="panel">
-                    <div id="sys-wallet" style="font-family: monospace; font-size: 14px; color: var(--gold);">
-                        WALLET: ¥0
-                    </div>
+                    <div id="sys-wallet" style="font-family: monospace; font-size: 14px; color: var(--gold);">WALLET: ¥0</div>
                 </div>
             </div>
 
             <div class="game-cell right-zone">
                 <div class="panel">
                     <div style="font-size: 12px; font-family: monospace; color: var(--accent-pink); margin-bottom: 10px;">➔ PSYCHE_METERS</div>
-                    
                     <div class="meter-group">
                         <div class="meter-label"><span>SLEEP_DEBT (睡眠負債)</span><span id="v-sleep">0%</span></div>
                         <div class="meter-bg"><div id="m-sleep" class="meter-fill"></div></div>
@@ -287,20 +142,17 @@
 
                 <div class="panel">
                     <div style="font-size: 12px; font-family: monospace; color: var(--accent-cyan); margin-bottom: 10px;">➔ CHEMICAL_MIXER</div>
-                    
                     <div class="mix-slots">
                         <div id="slot-0" class="slot">ベース</div>
                         <div id="slot-1" class="slot">メイン</div>
                         <div id="slot-2" class="slot">トッピング</div>
                     </div>
-
                     <div class="btn-grid">
                         <button class="ing-btn" onclick="addIng('安価な睡眠薬')">安価な睡眠薬</button>
                         <button class="ing-btn" onclick="addIng('同期用ケチャップ')">同期用ケチャップ</button>
                         <button class="ing-btn" onclick="addIng('ドス黒いハーブ')">ドス黒いハーブ</button>
                         <button class="ing-btn" onclick="addIng('高周波ノイズ液')">高周波ノイズ液</button>
                     </div>
-
                     <div class="action-zone">
                         <button class="ing-btn" style="border-color:#555; color:#aaa;" onclick="clearMix()">クリア</button>
                         <button id="serve-btn" class="main-btn" onclick="submitDrink()" disabled>お給仕を実行</button>
@@ -315,10 +167,15 @@
         <div class="result-card">
             <div class="result-title">END OF DAY REPORT</div>
             <div id="r-status" style="font-weight: bold; font-family: monospace; font-size: 14px;">-</div>
-            <div class="score-num" id="r-earned">¥0</div>
-            <div style="font-size: 11px; color: #888; margin-bottom: 20px;">
-                総資産残高: <span id="r-total" style="color: var(--gold);">¥0</span>
+            
+            <div class="drink-display-box">
+                <div style="color: var(--accent-pink); font-weight: bold;">提供したドリンク:</div>
+                <div id="r-drink-name" style="color: #fff; font-size: 15px; margin: 2px 0; text-shadow: 0 0 5px var(--accent-cyan);">-</div>
+                <div id="r-drink-taste" class="taste-radar-mini">苦味:0 甘味:0 電波:0</div>
             </div>
+
+            <div class="score-num" id="r-earned">¥0</div>
+            <div style="font-size: 11px; color: #888; margin-bottom: 15px;">総資産残高: <span id="r-total" style="color: var(--gold);">¥0</span></div>
             <button class="main-btn" onclick="closeResult()">次の営業日へ ➔</button>
         </div>
     </div>
@@ -327,25 +184,35 @@
         const API_BASE = "http://localhost:8080/api/game";
         let recipe = [];
         let isWaitingDrink = false;
-        let pendingResultData = null; // 💸 リザルトデータを一時的にストックする変数
+        let pendingResultData = null;
 
-        // 🛠️ 1. メーターのDOMを更新
+        // 🔊 ブラウザの標準機能（Web Audio API）を使って、機材不要で「ピピッ」という電子音を合成生成する関数
+        function playBeep(freq = 800, duration = 0.05) {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+                oscillator.type = 'sine';
+                oscillator.frequency.value = freq;
+                gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime); // 音量は控えめに0.1
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                oscillator.start(); oscillator.stop(audioCtx.currentTime + duration);
+            } catch(e) { console.log("Audio Context blocked."); }
+        }
+
         function updateMeterDOM(key, val) {
             if(val > 100) val = 100; if(val < 0) val = 0;
             const bar = document.getElementById(`m-${key}`);
             const text = document.getElementById(`v-${key}`);
-            bar.style.width = val + "%";
-            text.innerText = val + "%";
-
+            bar.style.width = val + "%"; text.innerText = val + "%";
             if (key === 'sleep' || key === 'noise') {
                 if (val >= 70) bar.className = "meter-fill danger";
                 else bar.className = "meter-fill";
-            } else if (key === 'sync') {
-                bar.className = "meter-fill"; // 共通のシアンカラー
             }
         }
 
-        // 🛠️ 2. 調合UIの表示更新
         function updateMixUI() {
             for(let i = 0; i < 3; i++) {
                 const s = document.getElementById(`slot-${i}`);
@@ -356,10 +223,8 @@
             document.getElementById('serve-btn').disabled = (!isWaitingDrink || !isFull);
         }
 
-        // 🛠️ 3. Javaから返ってきた最新データを画面に同期
         function syncWithJava(data) {
             const frame = data.frame;
-            
             document.getElementById('dialogue-text').innerText = frame.text;
             document.getElementById('cast-id').innerText = frame.castId;
             document.getElementById('cast-name').innerText = frame.name;
@@ -371,52 +236,65 @@
             updateMeterDOM('noise', data.waveNoise);
             updateMeterDOM('sync', data.syncRate);
 
+            // ⚠️ りのの精神状態が暴走・クラッシュしているとき、画面全体のパネルに「シェイク（グリッチ）」を付与！
+            const stagePanel = document.getElementById('stage-panel');
+            if (frame.status === "OVERCLOCKED" || frame.status === "CRASHED") {
+                stagePanel.classList.add('glitch-active');
+                playBeep(250, 0.3); // 不穏なエラーの低音SEを鳴らす
+            } else {
+                stagePanel.classList.remove('glitch-active');
+            }
+
             isWaitingDrink = (frame.type === "wait_drink" || frame.status === "WAITING");
             updateMixUI();
         }
 
-        // 🛠️ 4. ステージエリアがクリックされたときの制御
         function handleStageClick() {
-            // もし裏に「お給仕結果データ」がプールされているなら、セリフを読み終えたと判断してポップアップを開く！
+            playBeep(1000, 0.03); // クリック音
             if (pendingResultData) {
                 showResultScreen(pendingResultData);
-                pendingResultData = null; // プールを空にする
+                pendingResultData = null;
                 return;
             }
-            
-            // 通常時はテキストを進める
             advanceText();
         }
 
-        // 🛠️ 5. 本日の精算画面をポップアップ
         function showResultScreen(data) {
+            playBeep(600, 0.1); // ポップアップ解放音
             const isSuccess = (data.earnedToday === 2000); 
-            document.getElementById('r-status').innerText = isSuccess ? "大成功 (AMU同調)" : "失敗 (ただの泥水)";
-            document.getElementById('r-status').style.color = isSuccess ? "var(--terminal-green)" : "#ff0055";
+            const castName = data.frame.name;
+            
+            if (isSuccess) {
+                document.getElementById('r-status').innerText = castName.includes("RINO") ? "大成功 (RINO過充電)" : "大成功 (AMU同調)";
+                document.getElementById('r-status').style.color = "var(--terminal-green)";
+            } else {
+                document.getElementById('r-status').innerText = "失敗 (ただの泥水)";
+                document.getElementById('r-status').style.color = "#ff0055";
+            }
+            
+            // 📝 ドリンク名と裏パラメーター数値をネオンポップアップに焼き付ける
+            document.getElementById('r-drink-name').innerText = data.drinkName;
+            document.getElementById('r-drink-taste').innerText = `[ 苦味(Bitter): ${data.bitterness} // 甘味(Sweet): ${data.sweetness} // 電波(Pulse): ${data.cyberPulse} ]`;
+
             document.getElementById('r-earned').innerText = `¥${data.earnedToday.toLocaleString()}`;
             document.getElementById('r-total').innerText = `¥${data.wallet.toLocaleString()}`;
             document.getElementById('result-screen').style.display = "flex";
         }
 
-        // 🛠️ 6. 精算画面を閉じて次のステップへ進む
         function closeResult() {
+            playBeep(1200, 0.05);
             document.getElementById('result-screen').style.display = "none";
-            advanceText(); // 2日目のセリフへ進行
+            advanceText();
         }
 
-        // 🛠️ 7. 起動処理
         async function bootSequence() {
             try {
                 const response = await fetch(`${API_BASE}/state`);
                 const data = await response.json();
                 syncWithJava(data);
-            } catch (error) {
-                document.getElementById('dialogue-text').innerText = "⚠️ SYSTEM ERROR: 有線接続に失敗。";
-                console.error(error);
-            }
+            } catch (e) { console.error(e); }
         }
 
-        // 🛠️ 8. 通常のテキスト進行
         async function advanceText() {
             if (isWaitingDrink) return; 
             try {
@@ -426,8 +304,8 @@
             } catch(e) { console.error(e); }
         }
 
-        // 🛠️ 9. お給仕を実行（パケット送信）
         async function submitDrink() {
+            playBeep(440, 0.08);
             try {
                 const response = await fetch(`${API_BASE}/serve`, {
                     method: 'POST',
@@ -436,23 +314,20 @@
                 });
                 const data = await response.json();
                 recipe = []; 
-                
-                // ➔ 【ここがポイント！】
-                // 画面のセリフやメーターはすぐに更新しますが、ポップアップの表示だけは保留（プール）します！
                 syncWithJava(data);
                 pendingResultData = data; 
-                
             } catch(e) { console.error(e); }
         }
 
-        /* ─── 調合制御 ─── */
         function addIng(name) {
+            playBeep(900, 0.02); // 素材投入時のピピッ音
             if (recipe.length >= 3) return;
             recipe.push(name);
             updateMixUI();
         }
 
         function clearMix() {
+            playBeep(300, 0.05); // クリア音
             recipe = [];
             updateMixUI();
         }
