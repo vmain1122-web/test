@@ -1,3 +1,4 @@
+package com.example.demo; // ★これを1行目に追加！
 public class BrewedDrink {
     private String name;        // ドリンク名（例：強制同期オム・ラテ）
     private int odLevel;        // 依存度

@@ -1,3 +1,6 @@
+package com.example.demo; // ★これを1行目に追加！
+import java.util.List;
+
 public class DrinkRequest {
     private String castId;
     private List<String> ingredients;

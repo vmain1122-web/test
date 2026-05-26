@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>MAID_CORE // HOOKAH_HAZE_METER v4</title>
+    <style>
+        :root {
+            --bg-color: #050202;
+            --accent-color: #a30000;
+            --terminal-green: #39ff14;
+            --terminal-cyan: #00f0ff;
+            --text-color: #e2daf0;
+            --panel-bg: rgba(10, 5, 5, 0.95);
+        }
+        body {
+            background-color: var(--bg-color); color: var(--text-color);
+            font-family: 'MS Mincho', serif; margin: 0; padding: 20px;
+            display: flex; flex-direction: column; height: 95vh;
+        }
+        header {
+            border-bottom: 2px double var(--accent-color); padding-bottom: 8px; margin-bottom: 15px;
+            display: flex; justify-content: space-between; font-family: monospace; color: var(--accent-color); font-size: 12px;
+        }
+        .game-container { display: grid; grid-template-columns: 4fr 3fr; gap: 20px; flex-grow: 1; }
+        .stage-area { background: var(--panel-bg); border: 1px solid var(--accent-color); padding: 20px; display: flex; flex-direction: column; justify-content: space-between; }
+        .cast-name { color: var(--accent-color); font-size: 24px; font-weight: bold; margin: 5px 0; }
+        .dialogue-box { background: rgba(0, 0, 0, 0.9); border: 1px solid #333; border-left: 5px solid var(--accent-color); padding: 18px; min-height: 90px; font-size: 16px; line-height: 1.8; cursor: pointer; }
+        
+        .counter-area { background: var(--panel-bg); border: 1px solid #222; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+        .shelf { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+        .btn-ingredient { background: #110808; border: 1px solid #333; color: #ccc; padding: 10px; cursor: pointer; text-align: left; font-size: 12px; }
+        .btn-ingredient:hover { background: var(--accent-color); color: #fff; }
+        .brew-slots { display: flex; gap: 10px; }
+        .slot { flex: 1; background: #000; border: 1px dashed #444; height: 35px; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #666; }
+        .slot.filled { border-style: solid; border-color: var(--accent-color); color: #fff; }
+        .btn-serve { padding: 12px; font-weight: bold; cursor: pointer; background: #3a0000; border: 1px solid var(--accent-color); color: #fff; }
+        .btn-serve:disabled { background: #111; border-color: #222; color: #444; cursor: not-allowed; }
+
+        /* フーカーヘイズ風：病みメーターのスタイリング */
+        .meter-container {
+            background: #000; border: 1px solid #333; padding: 12px;
+            font-family: monospace; font-size: 11px; display: flex; flex-direction: column; gap: 8px;
+        }
+        .meter-row { display: flex; flex-direction: column; gap: 3px; }
+        .meter-label { display: flex; justify-content: space-between; color: #aaa; }
+        .meter-bg { background: #201010; height: 8px; border: 1px solid #444; position: relative; }
+        .meter-fill { height: 100%; width: 50%; background: var(--accent-color); transition: width 0.8s ease-in-out; }
+        .danger { background: #ff0055 !important; box-shadow: 0 0 8px #ff0055; }
+        .stable { background: var(--terminal-cyan) !important; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div id="sys-day">DAY: 01 // COGNITIVE_METER_LOADED</div>
+        <div>PSYCHE_MONITOR: ONLINE</div>
+    </header>
+
+    <div class="game-container">
+        <div class="stage-area">
+            <div>
+                <div style="font-family: monospace; color:#777;" id="cast-id">RANK 01</div>
+                <div class="cast-name" id="cast-name">あむ / AMU</div>
+                <div style="color: #aaa; font-size: 13px;" id="cast-status">MENTAL_LOG: MONITORING</div>
+                <div style="margin-top: 30px; text-align: center; color: #444; border: 1px dashed #222; padding: 40px;">[ VISUAL CONSOLE ]</div>
+            </div>
+            <div class="dialogue-box" onclick="advanceText()">
+                <div id="dialogue-text">ロード中...</div>
+            </div>
+        </div>
+
+        <div class="counter-area">
+            <div style="font-size:13px; color:#aaa; border-left: 3px solid var(--accent-color); padding-left: 6px;">🧠 キャスト精神状態モニター</div>
+            <div class="meter-container">
+                <div class="meter-row">
+                    <div class="meter-label"><span>[ 睡眠負債 / SLEEP_DEBT ]</span><span id="v-sleep">--%</span></div>
+                    <div class="meter-bg"><div class="meter-fill" id="m-sleep" style="width: 0%;"></div></div>
+                </div>
+                <div class="meter-row">
+                    <div class="meter-label"><span>[ 脳波ノイズ / WAVE_NOISE ]</span><span id="v-noise">--%</span></div>
+                    <div class="meter-bg"><div class="meter-fill" id="m-noise" style="width: 0%;"></div></div>
+                </div>
+                <div class="meter-row">
+                    <div class="meter-label"><span>[ 依存同調率 / SYNC_RATE ]</span><span id="v-sync">--%</span></div>
+                    <div class="meter-bg"><div class="meter-fill" id="m-sync" style="width: 0%;"></div></div>
+                </div>
+            </div>
+
+            <div style="font-size:12px; color:#888;">抽出原材料</div>
+            <div class="shelf">
+                <button class="btn-ingredient" onclick="addIng('安価な睡眠薬')">🧪 安価な睡眠薬</button>
+                <button class="btn-ingredient" onclick="addIng('同期用ケチャップ')">🍅 同期用ケチャップ</button>
+                <button class="btn-ingredient" onclick="addIng('ドス黒いハーブ')">🌿 ドス黒いハーブ</button>
+                <button class="btn-ingredient" onclick="addIng('高周波ノイズ液')">⚡ 高周波ノイズ液</button>
+            </div>
+            <div style="font-size:12px; color:#888;">現在の配合</div>
+            <div class="brew-slots">
+                <div class="slot" id="slot-0">ベース</div>
+                <div class="slot" id="slot-1">メイン</div>
+                <div class="slot" id="slot-2">トッピング</div>
+            </div>
+            
+            <button style="background:#1a0f0f; color:#ff3333; border:1px solid #441111; padding:8px; cursor:pointer; font-family:inherit; font-size:12px;" onclick="clearMix()">
+                🗑️ カップの中身をドブに捨てる
+            </button>
+
+            <button class="btn-action btn-serve" id="serve-btn" onclick="submitDrink()" disabled>【 お給仕を実行する 】</button>
+        </div>
+    </div>
+
+   <script>
+        const API_BASE = "http://localhost:8080/api/game";
+        let recipe = [];
+        let isWaitingDrink = false;
+
+        async function bootSequence() {
+            try {
+                const response = await fetch(`${API_BASE}/state`);
+                const data = await response.json();
+                console.log("【Boot連動受信】", data);
+                syncWithJava(data);
+            } catch (error) {
+                document.getElementById('dialogue-text').innerText = "⚠️ SYSTEM ERROR: 有線接続に失敗。";
+                console.error(error);
+            }
+        }
+
+        function syncWithJava(data) {
+            const frame = data.frame;
+            
+            document.getElementById('dialogue-text').innerText = frame.text;
+            document.getElementById('cast-id').innerText = frame.castId;
+            document.getElementById('cast-name').innerText = frame.name;
+            document.getElementById('cast-status').innerText = `STATUS: ${frame.status}`;
+            document.getElementById('sys-day').innerText = `DAY: 0${frame.day} // INTERCEPT_LOG`;
+            
+            document.documentElement.style.setProperty('--accent-color', frame.uiColor);
+
+            updateMeterDOM('sleep', data.sleepDebt);
+            updateMeterDOM('noise', data.waveNoise);
+            updateMeterDOM('sync', data.syncRate);
+
+            // ★修正：Java側の "wait_drink" と "WAITING" の両方の電波をキャッチできるようにガードを拡張
+            isWaitingDrink = (frame.type === "wait_drink" || frame.status === "WAITING");
+            
+            console.log(`【状態同期】現在ドリンク待ちか？: ${isWaitingDrink}, 現在のカップ中身数: ${recipe.length}`);
+            updateMixUI();
+        }
+
+        async function advanceText() {
+            // ★デバッグログ：クリックされたときの状況を開発者ツールに表示
+            console.log(`【クリック検知】ドリンク待ちフラグ: ${isWaitingDrink}`);
+            if (isWaitingDrink) {
+                console.log("-> 現在ドリンク待ち状態のため、テキスト進行をロックしています。");
+                return; 
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/advance`, { method: 'POST' });
+                const data = await response.json();
+                console.log("【Advance連動受信】", data);
+                syncWithJava(data);
+            } catch(e) { console.error(e); }
+        }
+
+        async function submitDrink() {
+            console.log("【投薬実行】Javaへ送信するパケット:", recipe);
+            try {
+                const response = await fetch(`${API_BASE}/serve`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(recipe)
+                });
+                const data = await response.json();
+                console.log("【Serve結果受信】", data);
+                recipe = []; 
+                syncWithJava(data);
+            } catch(e) { console.error(e); }
+        }
+
+        function addIng(name) {
+            if (recipe.length >= 3) return;
+            recipe.push(name);
+            updateMixUI();
+        }
+
+        function clearMix() {
+            recipe = [];
+            updateMixUI();
+        }
+
+        function updateMixUI() {
+            for(let i = 0; i < 3; i++) {
+                const s = document.getElementById(`slot-${i}`);
+                if (recipe[i]) { s.innerText = recipe[i]; s.classList.add('filled'); }
+                else { s.innerText = i===0?"ベース":i===1?"メイン":"トッピング"; s.classList.remove('filled'); }
+            }
+            
+            // ★お給仕ボタンの判定条件を最新状態に同期
+            const isFull = (recipe.length === 3);
+            document.getElementById('serve-btn').disabled = (!isWaitingDrink || !isFull);
+            
+            console.log(`【UI更新】ボタン活性化チェック -> ドリンク待ちか: ${isWaitingDrink}, 3つ入ってるか: ${isFull} -> ボタン無効化(disabled): ${!isWaitingDrink || !isFull}`);
+        }
+
+        function updateMeterDOM(key, val) {
+            if(val > 100) val = 100; if(val < 0) val = 0;
+            const bar = document.getElementById(`m-${key}`);
+            const text = document.getElementById(`v-${key}`);
+            bar.style.width = val + "%";
+            text.innerText = val + "%";
+
+            if (key === 'sleep' || key === 'noise') {
+                if (val >= 70) bar.className = "meter-fill danger";
+                else bar.className = "meter-fill";
+            } else if (key === 'sync') {
+                if (val >= 50) bar.className = "meter-fill stable";
+                else bar.className = "meter-fill";
+            }
+        }
+
+        window.onload = bootSequence;
+    </script>
+</body>
+</html>
