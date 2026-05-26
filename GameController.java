@@ -14,10 +14,12 @@ public class GameController {
     
     private final CastStatus amuStatus = new CastStatus("AMU", 80, 60, 20);
     private final CastStatus rinoStatus = new CastStatus("RINO", 30, 100, 10);
+    // 👥 3日目：ねねの初期ステータス（ノイズ80%の限界病み全肯定状態で来店！）
+    private final CastStatus neneStatus = new CastStatus("NENE", 50, 80, 20);
     
     private int wallet = 0; 
     private int earnedToday = 0;
-    private String unlockedItem = "NONE"; // 🛒 ショップで購入したアイテムを記憶 ("NONE", "FILTER", "DONUT")
+    private String unlockedItem = "NONE";
 
     @GetMapping("/state")
     public GameStateResponse getCurrentState() {
@@ -33,12 +35,16 @@ public class GameController {
     @PostMapping("/serve")
     public GameStateResponse serveDrink(@RequestBody List<String> ingredients) {
         DialogueFrame currentFrame = scenarioEngine.getCurrentFrame();
-        CastStatus activeStatus = currentFrame.getDay() == 1 ? amuStatus : rinoStatus;
+        
+        // 日付に応じてアクティブなキャストをスイッチング
+        CastStatus activeStatus = amuStatus;
+        if (currentFrame.getDay() == 2) activeStatus = rinoStatus;
+        if (currentFrame.getDay() == 3) activeStatus = neneStatus;
         
         gameEngine.processServing(activeStatus, ingredients);
         
         DialogueFrame nextFrame = scenarioEngine.getCurrentFrame();
-        if (nextFrame.getStatus().equals("STABLE") || nextFrame.getStatus().equals("OVERCLOCKED")) {
+        if (nextFrame.getStatus().equals("STABLE") || nextFrame.getStatus().equals("OVERCLOCKED") || nextFrame.getStatus().equals("TOXIC_SWEET")) {
             this.earnedToday = 2000;
         } else {
             this.earnedToday = 1000;
@@ -48,20 +54,22 @@ public class GameController {
         return buildResponse(gameEngine.getLastBrewedDrink());
     }
 
-    // 🛒 新設：ショップで購入処理を実行するAPI
     @PostMapping("/buy")
     public GameStateResponse buyItem(@RequestBody Map<String, String> request) {
         String item = request.get("item");
         if (this.wallet >= 1500) {
             this.wallet -= 1500;
-            this.unlockedItem = item; // "FILTER" または "DONUT"
+            this.unlockedItem = item;
         }
         return buildResponse(new BrewedDrink("-", 0, 0, 0));
     }
 
     private GameStateResponse buildResponse(BrewedDrink drink) {
         DialogueFrame currentFrame = scenarioEngine.getCurrentFrame();
-        CastStatus activeStatus = currentFrame.getDay() == 1 ? amuStatus : rinoStatus;
+        
+        CastStatus activeStatus = amuStatus;
+        if (currentFrame.getDay() == 2) activeStatus = rinoStatus;
+        if (currentFrame.getDay() == 3) activeStatus = neneStatus;
 
         return new GameStateResponse(
             currentFrame,
@@ -89,7 +97,7 @@ public class GameController {
         public int bitterness;
         public int sweetness;
         public int cyberPulse;
-        public String unlockedItem; // 📤 HTMLへ引き渡す購入状態パケット
+        public String unlockedItem;
 
         public GameStateResponse(DialogueFrame frame, int sleep, int noise, int sync, int wallet, int earned, String dName, int b, int s, int c, String item) {
             this.frame = frame;
