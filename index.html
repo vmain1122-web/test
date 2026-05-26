@@ -310,7 +310,14 @@
             const castName = data.frame.name;
             
             if (isSuccess) {
-                document.getElementById('r-status').innerText = castName.includes("RINO") ? "大成功 (RINO過充電)" : "大成功 (AMU同調)";
+                // 🎯 ねね・りの・あむ の各大成功表記を綺麗にスイッチング
+                if (castName.includes("NENE")) {
+                    document.getElementById('r-status').innerText = "大成功 (NENE全肯定・脳溶け)";
+                } else if (castName.includes("RINO")) {
+                    document.getElementById('r-status').innerText = "大成功 (RINO過充電)";
+                } else {
+                    document.getElementById('r-status').innerText = "大成功 (AMU同調)";
+                }
                 document.getElementById('r-status').style.color = "var(--terminal-green)";
             } else {
                 document.getElementById('r-status').innerText = "失敗 (ただの泥水)";
@@ -322,7 +329,6 @@
             document.getElementById('r-earned').innerText = `¥${data.earnedToday.toLocaleString()}`;
             document.getElementById('r-total').innerText = `¥${data.wallet.toLocaleString()}`;
 
-            // 🛒 ショップボタンの活性・非活性制御（1日目の夜だけ購入可能、残高1500円以上）
             const canBuy = (currentDay === 1 && data.wallet >= 1500 && data.unlockedItem === "NONE");
             document.getElementById('shop-btn-filter').disabled = !canBuy;
             document.getElementById('shop-btn-donut').disabled = !canBuy;
