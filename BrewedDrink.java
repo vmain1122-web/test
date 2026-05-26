@@ -1,20 +1,21 @@
-package com.example.demo; // ★これを1行目に追加！
-public class BrewedDrink {
-    private String name;        // ドリンク名（例：強制同期オム・ラテ）
-    private int odLevel;        // 依存度
-    private int sweetLevel;     // 脳溶け度
-    private int crazyLevel;     // 狂気度
+package com.example.demo;
 
-    public BrewedDrink(String name, int odLevel, int sweetLevel, int crazyLevel) {
+public class BrewedDrink {
+    private String name;
+    private int bitterness; // 苦味
+    private int sweetness;  // 甘味
+    private int cyberPulse; // 電波度
+
+    public BrewedDrink(String name, int bitterness, int sweetness, int cyberPulse) {
         this.name = name;
-        this.odLevel = odLevel;
-        this.sweetLevel = sweetLevel;
-        this.crazyLevel = crazyLevel;
+        this.bitterness = bitterness;
+        this.sweetness = sweetness;
+        this.cyberPulse = cyberPulse;
     }
 
     // Getters
     public String getName() { return name; }
-    public int getOdLevel() { return odLevel; }
-    public int getSweetLevel() { return sweetLevel; }
-    public int getCrazyLevel() { return crazyLevel; }
+    public int getBitterness() { return bitterness; }
+    public int getSweetness() { return sweetness; }
+    public int getCyberPulse() { return cyberPulse; }
 }
