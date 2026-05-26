@@ -1,4 +1,5 @@
-package com.example.demo; // ★これを1行目に追加！
+package com.example.demo;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -7,20 +8,20 @@ public class ScenarioEngine {
     private int currentPointer = 0;
 
     public ScenarioEngine() {
-        // --- 1日目：導入パート ---
+        // --- 1日目：導入パート (INDEX 0〜2) ---
         timeline.add(new DialogueFrame("talk", 1, "RANK 01", "あむ / AMU", "SEVERE_SLEEP_DEPRIVATION", "「…はろー。ねぇマスター、聞いてる？ あむの脳内のタイムライン、さっきから謎の文字列で埋め尽くされてるの……」", "#a30000"));
         timeline.add(new DialogueFrame("talk", 1, "RANK 01", "あむ / AMU", "SEVERE_SLEEP_DEPRIVATION", "「これ絶対誰かの嫌がらせ。…ねぇ、いつもの『脳溶け』が強いやつ。あれ飲ませて、脳みそミュートにして？」", "#a30000"));
         timeline.add(new DialogueFrame("wait_drink", 1, "RANK 01", "あむ / AMU", "WAITING", "（あむは虚ろな目でカップを見つめている。ドリンクを要求している…）", "#a30000"));
         
-        // --- 分岐ルートA：大成功（インデックス 3〜4） ---
-        timeline.add(new DialogueFrame("talk", 1, "RANK 01", "あむ / AMU", "STABLE", "「…ん、とろとろしてきた。頭のなかのパチパチが消えた。すりガラスの向こう側に行ったみたいに、静か……」", "#a30000"));
+        // --- 分岐ルートA：大成功 (INDEX 3〜4) ---
+        timeline.add(new DialogueFrame("talk", 1, "RANK 01", "あむ / AMU", "STABLE", "「…ん、とろとろしてきた。頭のなかのパチパチするノイズ、マスターの液体が全部消してくれたみたい……」", "#a30000"));
         timeline.add(new DialogueFrame("talk", 1, "RANK 01", "あむ / AMU", "STABLE", "「ありがと、マスター。これで明日の昼のメン地下アイドルの対バンライブ、笑顔で乗り切れる気がする……バイバイ」", "#a30000"));
         
-        // --- 分岐ルートB：失敗（インデックス 5〜6） ---
+        // --- 分岐ルートB：失敗 (INDEX 5〜6) ---
         timeline.add(new DialogueFrame("talk", 1, "RANK 01", "あむ / AMU", "ANGRY", "「……なにこれ。こんな濁った泥水じゃ外界の電波遮断できないよ。マスター、あむの脳みそがハッキングされて壊れても、どうでもいいんだ……？」", "#a30000"));
         timeline.add(new DialogueFrame("talk", 1, "RANK 01", "あむ / AMU", "ANGRY", "「もういい。今日のチェキの売り上げで別の怪しいクスリ買うから。マスターのバカ。出禁にしてあげる」", "#a30000"));
 
-        // --- 共通イベント：2日目（インデックス 7〜） ---
+        // --- 共通イベント：2日目 (INDEX 7〜) ---
         timeline.add(new DialogueFrame("talk", 2, "RANK 02", "りの / RINO", "MEMORY_LEAKING", "「マスターおはよーっ！ピピッと22世紀からダウンリンク完了！…って、うそ。今のナシ。脳内のタスクマネージャーが真っ赤っか！あはは！」", "#00a3a3"));
     }
 
@@ -32,22 +33,19 @@ public class ScenarioEngine {
     }
 
     public void advance() {
-        DialogueFrame current = getCurrentFrame();
-        if ("wait_drink".equals(current.getType())) return;
-
-        // 大成功（4）または失敗（6）のセリフを読み終えたら、2日目（7）へワープ
+        // ルートの末尾（あむのセリフの終わり）に来たら、自動的に2日目（りの）へジャンプ
         if (currentPointer == 4 || currentPointer == 6) {
-            currentPointer = 7;
+            currentPointer = 7; 
         } else {
             currentPointer++;
         }
     }
 
     public void routeBranch(String result) {
-        if ("SUCCESS".equals(result)) {
-            currentPointer = 3;
+        if (result.equals("SUCCESS")) {
+            currentPointer = 3; // 成功ルートの最初のセリフへ
         } else {
-            currentPointer = 5;
+            currentPointer = 5; // 失敗ルートの最初のセリフへ
         }
     }
 }
