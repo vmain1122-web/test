@@ -134,17 +134,36 @@
         let isWaitingDrink = false;
         let currentDay = 1;
 
-        async function bootSequence() {
-            try {
-                const response = await fetch(`${API_BASE}/state`);
-                const data = await response.json();
-                syncWithJava(data);
-            } catch (error) {
-                document.getElementById('dialogue-text').innerText = "⚠️ SYSTEM ERROR: 有線接続に失敗。";
-                console.error(error);
+        // 🛠️ 1. メーターのDOMを更新する関数（一番基礎になる部品）
+        function updateMeterDOM(key, val) {
+            if(val > 100) val = 100; if(val < 0) val = 0;
+            const bar = document.getElementById(`m-${key}`);
+            const text = document.getElementById(`v-${key}`);
+            bar.style.width = val + "%";
+            text.innerText = val + "%";
+
+            if (key === 'sleep' || key === 'noise') {
+                if (val >= 70) bar.className = "meter-fill danger";
+                else bar.className = "meter-fill";
+            } else if (key === 'sync') {
+                if (val >= 50) bar.className = "meter-fill stable";
+                else bar.className = "meter-fill";
             }
         }
 
+        // 🛠️ 2. 手元の調合UIを更新する関数
+        function updateMixUI() {
+            for(let i = 0; i < 3; i++) {
+                const s = document.getElementById(`slot-${i}`);
+                if (recipe[i]) { s.innerText = recipe[i]; s.classList.add('filled'); }
+                else { s.innerText = i===0?"ベース":i===1?"メイン":"トッピング"; s.classList.remove('filled'); }
+            }
+            const isFull = (recipe.length === 3);
+            document.getElementById('serve-btn').disabled = (!isWaitingDrink || !isFull);
+            console.log(`【UI更新】ボタン活性化チェック -> ドリンク待ちか: ${isWaitingDrink}, 3つ入ってるか: ${isFull}`);
+        }
+
+        // 🛠️ 3. Javaから返ってきた最新データを画面に焼き付ける関数
         function syncWithJava(data) {
             const frame = data.frame;
             currentDay = frame.day;
@@ -166,15 +185,50 @@
             updateMixUI();
         }
 
+        // 🛠️ 4. 本日の精算画面をポップアップする関数
+        function showResultScreen(data) {
+            const isSuccess = (data.earnedToday === 2000); 
+            document.getElementById('r-status').innerText = isSuccess ? "大成功 (AMU同調)" : "失敗 (ただの泥水)";
+            document.getElementById('r-status').style.color = isSuccess ? "var(--terminal-green)" : "#ff0055";
+            document.getElementById('r-earned').innerText = `¥${data.earnedToday.toLocaleString()}`;
+            document.getElementById('r-total').innerText = `¥${data.wallet.toLocaleString()}`;
+            document.getElementById('result-screen').style.display = "flex";
+        }
+
+        // 🛠️ 5. 精算画面を閉じて次のステップに進む関数
+        function closeResult() {
+            document.getElementById('result-screen').style.display = "none";
+            advanceText();
+        }
+
+        // 🛠️ 6. 起動時にJavaから最初の状態を取得する同期関数
+        async function bootSequence() {
+            try {
+                const response = await fetch(`${API_BASE}/state`);
+                const data = await response.json();
+                console.log("【Boot連動受信】", data);
+                syncWithJava(data); // 順番を入れ替えたので、ここで確実に呼び出せます！
+            } catch (error) {
+                document.getElementById('dialogue-text').innerText = "⚠️ SYSTEM ERROR: 有線接続に失敗。";
+                console.error(error);
+            }
+        }
+
+        // 🛠️ 7. テキストボックスをクリックしたとき（進行通知）
         async function advanceText() {
-            if (isWaitingDrink) return; 
+            if (isWaitingDrink) {
+                console.log("-> 現在ドリンク待ち状態のため、テキスト進行をロックしています。");
+                return; 
+            }
             try {
                 const response = await fetch(`${API_BASE}/advance`, { method: 'POST' });
                 const data = await response.json();
+                console.log("【Advance連動受信】", data);
                 syncWithJava(data);
             } catch(e) { console.error(e); }
         }
 
+        // 🛠️ 8. お給仕を実行したとき（パケット送信）
         async function submitDrink() {
             try {
                 const response = await fetch(`${API_BASE}/serve`, {
@@ -185,27 +239,11 @@
                 const data = await response.json();
                 recipe = []; 
                 syncWithJava(data);
-
-                // 🔔 お給仕直後にリザルト画面をポップアップ
                 showResultScreen(data);
             } catch(e) { console.error(e); }
         }
 
-        function showResultScreen(data) {
-            const isSuccess = data.earnedToday > 0;
-            document.getElementById('r-status').innerText = isSuccess ? "大成功 (AMU同調)" : "失敗 (ただの泥水)";
-            document.getElementById('r-status').style.color = isSuccess ? "var(--terminal-green)" : "#ff0055";
-            document.getElementById('r-earned').innerText = `¥${data.earnedToday.toLocaleString()}`;
-            document.getElementById('r-total').innerText = `¥${data.wallet.toLocaleString()}`;
-            document.getElementById('result-screen').style.display = "flex";
-        }
-
-        function closeResult() {
-            document.getElementById('result-screen').style.display = "none";
-            // 精算を閉じたら次の会話に進めるように、自動で1タップ進める
-            advanceText();
-        }
-
+        /* ─── 手元の調合制御（フロントの仕事） ─── */
         function addIng(name) {
             if (recipe.length >= 3) return;
             recipe.push(name);
@@ -217,32 +255,7 @@
             updateMixUI();
         }
 
-        function updateMixUI() {
-            for(let i = 0; i < 3; i++) {
-                const s = document.getElementById(`slot-${i}`);
-                if (recipe[i]) { s.innerText = recipe[i]; s.classList.add('filled'); }
-                else { s.innerText = i===0?"ベース":i===1?"メイン":"トッピング"; s.classList.remove('filled'); }
-            }
-            const isFull = (recipe.length === 3);
-            document.getElementById('serve-btn').disabled = (!isWaitingDrink || !isFull);
-        }
-
-        function updateMeterDOM(key, val) {
-            if(val > 100) val = 100; if(val < 0) val = 0;
-            const bar = document.getElementById(`m-${key}`);
-            const text = document.getElementById(`v-${key}`);
-            bar.style.width = val + "%";
-            text.innerText = val + "%";
-
-            if (key === 'sleep' || key === 'noise') {
-                if (val >= 70) bar.className = "meter-fill danger";
-                else bar.className = "meter-fill";
-            } else if (key === 'sync') {
-                if (val >= 50) bar.className = "meter-fill stable";
-                else bar.className = "meter-fill";
-            }
-        }
-
+        // 全ての関数が定義し終わった最後の最後で、起動スイッチを入れる
         window.onload = bootSequence;
     </script>
 </body>
